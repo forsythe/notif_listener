@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:android_notification_listener2/android_notification_listener2.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,8 @@ class _MyAppState extends State<MyApp> {
       RefreshController(initialRefresh: true);
 
   final max32BitInt = pow(2, 31) - 1;
+  static const REPLAYER_MESSAGE = "Replayer is listening...";
+  static const GROUPED_CHANNEL_ID = 'grouped_channel_id';
 
   @override
   void initState() {
@@ -43,19 +46,12 @@ class _MyAppState extends State<MyApp> {
       initializationSettings,
       // ignore: missing_return
       onSelectNotification: (payload) {
-        showDialog(
-          context: context,
-          builder: (_) {
-            return AlertDialog(
-              title: Text("PayLoad"),
-              content: Text("Payload : $payload"),
-            );
-          },
-        );
+        print(payload);
       },
     );
 
     _refreshNotificationDisplayList();
+    _showOngoingNotification();
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
@@ -93,12 +89,16 @@ class _MyAppState extends State<MyApp> {
         ?.then((value) => setState(() {
               _notifs = value;
             }))
-        ?.whenComplete(() => {
-              if (_refreshController.isRefresh)
-                _refreshController.refreshCompleted()
-              else if (_refreshController.isLoading)
-                _refreshController.loadComplete()
-            });
+        ?.whenComplete(() {
+      print("Done refresh list");
+      _showOngoingNotification();
+      return {
+        if (_refreshController.isRefresh)
+          _refreshController.refreshCompleted()
+        else if (_refreshController.isLoading)
+          _refreshController.loadComplete()
+      };
+    });
   }
 
   void startListening() {
@@ -117,10 +117,12 @@ class _MyAppState extends State<MyApp> {
   Future _showNotificationWithoutSound(
       DateTime timestamp, String title, String content) async {
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel_id', 'Grouped Channel', 'Channel for WhatsApp messages',
+        GROUPED_CHANNEL_ID, 'Grouped Channel', 'Channel for WhatsApp messages',
         playSound: false,
         importance: Importance.max,
         priority: Priority.high,
+        ongoing: false,
+        category: "msg",
         styleInformation: BigTextStyleInformation(''));
     var platformChannelSpecifics = NotificationDetails(
         android: androidPlatformChannelSpecifics,
@@ -130,16 +132,47 @@ class _MyAppState extends State<MyApp> {
 
     await flutterLocalNotificationsPlugin.show(
       hashValues(
-          timestamp.year.hashCode,
-          timestamp.month.hashCode,
-          timestamp.day.hashCode,
-          timestamp.hour.hashCode,
-          timestamp.minute.hashCode,
-          timestamp.second.hashCode,
-          title.hashCode,
-          content.hashCode),
+        timestamp.year.hashCode,
+        timestamp.month.hashCode,
+        timestamp.day.hashCode,
+        timestamp.hour.hashCode,
+        timestamp.minute.hashCode,
+        timestamp.second.hashCode,
+        title.hashCode,
+        content.hashCode,
+      ),
       title,
       "[" + dateFormatter.format(timestamp) + "] " + content,
+      platformChannelSpecifics,
+      payload: 'No_Sound',
+    );
+    _showOngoingNotification();
+  }
+
+  void _showOngoingNotification() {
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'channel_id_ongoing',
+        'Ongoing Grouped Channel',
+        'Channel for ongoing alert',
+        playSound: false,
+        importance: Importance.min,
+//        priority: Priority.high,
+//        ongoing: true,
+        onlyAlertOnce: true,
+        styleInformation: BigTextStyleInformation(''),
+//        category: "service",
+        additionalFlags: Int32List.fromList([0x00000020]) //FLAG_NO_CLEAR
+        );
+    var platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
+        iOS: IOSNotificationDetails(),
+        macOS: MacOSNotificationDetails());
+    final DateFormat dateFormatter = DateFormat('MMM dd, K:mm:ss a');
+
+    flutterLocalNotificationsPlugin.show(
+      0,
+      REPLAYER_MESSAGE,
+      "Last updated " + dateFormatter.format(DateTime.now()),
       platformChannelSpecifics,
       payload: 'No_Sound',
     );
@@ -147,8 +180,12 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    List<ActiveNotification> filteredNotifs =
-        _notifs.where((x) => x.body != null && x.title != null).toList();
+    List<ActiveNotification> filteredNotifs = _notifs
+        .where((x) =>
+            x.body != null &&
+            x.title != null &&
+            x.channelId == GROUPED_CHANNEL_ID)
+        .toList();
     filteredNotifs.sort((x, y) => x.body.compareTo(y.body));
     return MaterialApp(
       darkTheme: ThemeData.dark(),
