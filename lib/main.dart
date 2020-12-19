@@ -19,6 +19,8 @@ class _MyAppState extends State<MyApp> {
   AndroidNotificationListener _notifications;
   StreamSubscription<NotificationEventV2> _subscription;
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  List<ActiveNotification> _notifs = [];
+
   final max32BitInt = pow(2, 31) - 1;
   final List<RegExp> ignoreWhatsappMsgs = [
     RegExp(r"^\d+ messages from \d+ chats$"),
@@ -33,9 +35,10 @@ class _MyAppState extends State<MyApp> {
 
     var initializationSettingsAndroid =
         AndroidInitializationSettings('app_icon');
-    var initializationSettingsIOS = IOSInitializationSettings();
     var initializationSettings = InitializationSettings(
-        initializationSettingsAndroid, initializationSettingsIOS);
+        android: initializationSettingsAndroid,
+        iOS: IOSInitializationSettings(),
+        macOS: MacOSInitializationSettings());
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -71,6 +74,16 @@ class _MyAppState extends State<MyApp> {
     }
     _showNotificationWithoutSound(
         event.timeStamp, event.packageText, event.packageMessage);
+
+    flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.getActiveNotifications()
+        ?.then((value) => {
+              setState(() {
+                _notifs = value;
+              })
+            });
   }
 
   void startListening() {
@@ -91,15 +104,15 @@ class _MyAppState extends State<MyApp> {
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
         'channel_id', 'Grouped Channel', 'Channel for WhatsApp messages',
         playSound: false,
-        importance: Importance.Max,
-        priority: Priority.High,
+        importance: Importance.max,
+        priority: Priority.high,
         styleInformation: BigTextStyleInformation(''));
-    var iOSPlatformChannelSpecifics =
-        IOSNotificationDetails(presentSound: false);
     var platformChannelSpecifics = NotificationDetails(
-        androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+        android: androidPlatformChannelSpecifics,
+        iOS: IOSNotificationDetails(),
+        macOS: MacOSNotificationDetails());
     await flutterLocalNotificationsPlugin.show(
-      hashValues(title.hashCode, content.hashCode),
+      hashValues(timestamp.hashCode, title.hashCode, content.hashCode),
       title,
       "[" + timestamp.toLocal().toString() + "] " + content,
       platformChannelSpecifics,
@@ -109,12 +122,20 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    List<ActiveNotification> filteredNotifs =
+        _notifs.where((x) => x.body != null && x.title != null).toList();
+    filteredNotifs.sort((x, y) => x.body.compareTo(y.body));
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Notification Replayer'),
-        ),
-      ),
+          appBar: AppBar(
+            title: const Text('Notification Replayer'),
+          ),
+          body: ListView.builder(
+              itemCount: filteredNotifs.length,
+              itemBuilder: (context, index) => ListTile(
+                    title: Text(filteredNotifs[index].title),
+                    subtitle: Text(filteredNotifs[index].body),
+                  ))),
     );
   }
 }
