@@ -87,17 +87,17 @@ class _MyAppState extends State<MyApp> {
     _refreshNotificationDisplayList();
   }
 
-  void _refreshNotificationDisplayList() {
-    flutterLocalNotificationsPlugin
+  Future<void> _refreshNotificationDisplayList() async {
+    await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.getActiveNotifications()
         ?.then((value) => setState(() {
               _notifs = value;
             }))
-        ?.whenComplete(() {
+        ?.whenComplete(() async {
       print("Done refresh list");
-      _showOngoingNotification();
+      await _showOngoingNotification();
       return {
         if (_refreshController.isRefresh)
           _refreshController.refreshCompleted()
@@ -143,7 +143,8 @@ class _MyAppState extends State<MyApp> {
         timestamp.day.hashCode,
         timestamp.hour.hashCode,
         timestamp.minute.hashCode,
-        timestamp.second.hashCode,
+        (timestamp.second ~/ (60 / 12)).hashCode,
+        //count incoming messages with same user/content within 5s intervals as same msg
         title.hashCode,
         content.hashCode,
       ),
@@ -155,7 +156,7 @@ class _MyAppState extends State<MyApp> {
     _showOngoingNotification();
   }
 
-  void _showOngoingNotification() {
+  Future<void> _showOngoingNotification() async {
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
         'channel_id_ongoing',
         'Ongoing Grouped Channel',
@@ -175,7 +176,7 @@ class _MyAppState extends State<MyApp> {
         macOS: MacOSNotificationDetails());
     final DateFormat dateFormatter = DateFormat('MMM dd, K:mm:ss a');
 
-    flutterLocalNotificationsPlugin.show(
+    await flutterLocalNotificationsPlugin.show(
       0,
       REPLAYER_MESSAGE,
       "Last updated " + dateFormatter.format(DateTime.now()),
@@ -196,6 +197,16 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       darkTheme: ThemeData.dark(),
       home: Scaffold(
+          floatingActionButton: filteredNotifs.isEmpty
+              ? null
+              : FloatingActionButton(
+                  tooltip: "Clear all notifications",
+                  child: Icon(Icons.delete),
+                  onPressed: () async {
+                    await flutterLocalNotificationsPlugin.cancelAll();
+                    await _refreshNotificationDisplayList();
+                  },
+                ),
           appBar: AppBar(
             title: const Text('WhatsApp Notification Replayer'),
           ),
@@ -214,28 +225,67 @@ class _MyAppState extends State<MyApp> {
                       itemBuilder: (context, index) {
                         var titleString = filteredNotifs[index].title;
                         var bodyString = filteredNotifs[index].body;
-                        final RegExp parseBodyRegex =
-                            RegExp(r"^\[(.*), (\d+:\d+)(:.*)(AM|PM)\] (.*)");
+                        final RegExp parseBodyRegex = RegExp(
+                            r"^\[(.*), (\d+:\d+)(:.*)(AM|PM)\] (.*)",
+                            dotAll: true);
                         var parsedBody = parseBodyRegex.allMatches(bodyString);
                         var hmTime = parsedBody.first.group(2);
                         var amPm = parsedBody.first.group(4);
                         var contentString = parsedBody.first.group(5);
+                        String receivedTimeString = RegExp(r"^\[(.*)\](.*)")
+                            .allMatches(bodyString)
+                            .first
+                            .group(1);
 
                         return Card(
                           child: ListTile(
-                            visualDensity: VisualDensity.comfortable,
+                            visualDensity: VisualDensity.compact,
                             title: Text(titleString),
-                            subtitle: Text(contentString.toString()),
-                            trailing: Tooltip(
-                              child: Text(
-                                  hmTime.toString() + " " + amPm.toString()),
-                              message: "Received " +
-                                  RegExp(r"^\[(.*)\](.*)")
-                                      .allMatches(bodyString)
-                                      .first
-                                      .group(1),
+                            subtitle: Text(
+                              contentString.toString(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            trailing:
+                                Text(hmTime.toString() + " " + amPm.toString()),
                             dense: false,
+                            onLongPress: () {
+                              showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(titleString,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .headline6),
+                                          SizedBox(
+                                            height: 4,
+                                          ),
+                                          Text(receivedTimeString,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .caption),
+                                        ],
+                                      ),
+                                      content: SingleChildScrollView(
+                                          child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Text(contentString,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyText2),
+                                        ],
+                                      )),
+                                    );
+                                  });
+                            },
                           ),
                         );
                       }),
