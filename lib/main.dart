@@ -89,7 +89,7 @@ class _MyAppState extends State<MyApp> {
   Future _showNotificationWithoutSound(
       DateTime timestamp, String title, String content) async {
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel_id', 'Channel Name', 'Channel Description',
+        'channel_id', 'Grouped Channel', 'Channel for WhatsApp messages',
         playSound: false,
         importance: Importance.Max,
         priority: Priority.High,
