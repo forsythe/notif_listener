@@ -29,6 +29,7 @@ class _MyAppState extends State<MyApp> {
   final max32BitInt = pow(2, 31) - 1;
   static const REPLAYER_MESSAGE = "Replayer is listening...";
   static const GROUPED_CHANNEL_ID = 'grouped_channel_id';
+  static const RELOAD_ONGOING_PAYLOAD = 'RELOAD_ONGOING';
 
   @override
   void initState() {
@@ -47,6 +48,11 @@ class _MyAppState extends State<MyApp> {
       // ignore: missing_return
       onSelectNotification: (payload) {
         print(payload);
+        if (payload == RELOAD_ONGOING_PAYLOAD) {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            _showOngoingNotification();
+          });
+        }
       },
     );
 
@@ -144,7 +150,7 @@ class _MyAppState extends State<MyApp> {
       title,
       "[" + dateFormatter.format(timestamp) + "] " + content,
       platformChannelSpecifics,
-      payload: 'No_Sound',
+      payload: "Pressed regular notif",
     );
     _showOngoingNotification();
   }
@@ -174,7 +180,7 @@ class _MyAppState extends State<MyApp> {
       REPLAYER_MESSAGE,
       "Last updated " + dateFormatter.format(DateTime.now()),
       platformChannelSpecifics,
-      payload: 'No_Sound',
+      payload: RELOAD_ONGOING_PAYLOAD,
     );
   }
 
