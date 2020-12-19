@@ -129,8 +129,15 @@ class _MyAppState extends State<MyApp> {
     final DateFormat dateFormatter = DateFormat('MMM dd, K:mm:ss a');
 
     await flutterLocalNotificationsPlugin.show(
-      hashValues((timestamp.millisecondsSinceEpoch / 1000).hashCode,
-          title.hashCode, content.hashCode),
+      hashValues(
+          timestamp.year.hashCode,
+          timestamp.month.hashCode,
+          timestamp.day.hashCode,
+          timestamp.hour.hashCode,
+          timestamp.minute.hashCode,
+          timestamp.second.hashCode,
+          title.hashCode,
+          content.hashCode),
       title,
       "[" + dateFormatter.format(timestamp) + "] " + content,
       platformChannelSpecifics,
@@ -174,8 +181,8 @@ class _MyAppState extends State<MyApp> {
                         return Card(
                           child: ListTile(
                             visualDensity: VisualDensity.comfortable,
-                            leading: Text(titleString),
-                            title: Text(contentString.toString()),
+                            title: Text(titleString),
+                            subtitle: Text(contentString.toString()),
                             trailing: Tooltip(
                               child: Text(
                                   hmTime.toString() + " " + amPm.toString()),
