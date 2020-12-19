@@ -129,7 +129,8 @@ class _MyAppState extends State<MyApp> {
     final DateFormat dateFormatter = DateFormat('MMM dd, K:mm:ss a');
 
     await flutterLocalNotificationsPlugin.show(
-      hashValues(timestamp.hashCode, title.hashCode, content.hashCode),
+      hashValues((timestamp.millisecondsSinceEpoch / 1000).hashCode,
+          title.hashCode, content.hashCode),
       title,
       "[" + dateFormatter.format(timestamp) + "] " + content,
       platformChannelSpecifics,
