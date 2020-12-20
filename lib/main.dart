@@ -182,7 +182,7 @@ class _MyAppState extends State<MyApp> {
     await flutterLocalNotificationsPlugin.show(
       0,
       REPLAYER_MESSAGE,
-      "Last updated " + dateFormatter.format(DateTime.now()),
+      "Last updated " + dateFormatter.add_jms().format(DateTime.now()),
       platformChannelSpecifics,
       payload: RELOAD_ONGOING_PAYLOAD,
     );
