@@ -74,7 +74,10 @@ class _MyAppState extends State<MyApp> {
     final List<RegExp> ignoreWhatsappMsgs = [
       RegExp(r"^\d+ messages from \d+ chats$"),
       RegExp(r"^\d+ new messages$"),
-      RegExp(r"^Checking for new messages$")
+      RegExp(r"^Checking for new messages$"),
+      RegExp(
+          r"^Uploading: \d+(\.[0-9]+)? [kM]B of \d+(\.[0-9]+)? [kM]B \(\d+%\)$"),
+      RegExp(r"^Preparing backup [\(\d+%\)|\.\.\.]$")
     ];
 
     if (event.packageName != "com.whatsapp" ||
