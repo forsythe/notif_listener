@@ -134,7 +134,7 @@ class _MyAppState extends State<MyApp> {
         android: androidPlatformChannelSpecifics,
         iOS: IOSNotificationDetails(),
         macOS: MacOSNotificationDetails());
-    final DateFormat dateFormatter = DateFormat('MMM dd, K:mm:ss a');
+    final DateFormat dateFormatter = DateFormat('MMM dd,');
 
     await flutterLocalNotificationsPlugin.show(
       hashValues(
@@ -149,7 +149,7 @@ class _MyAppState extends State<MyApp> {
         content.hashCode,
       ),
       title,
-      "[" + dateFormatter.format(timestamp) + "] " + content,
+      "[" + dateFormatter.add_jms().format(timestamp) + "] " + content,
       platformChannelSpecifics,
       payload: "Pressed regular notif",
     );
@@ -174,7 +174,7 @@ class _MyAppState extends State<MyApp> {
         android: androidPlatformChannelSpecifics,
         iOS: IOSNotificationDetails(),
         macOS: MacOSNotificationDetails());
-    final DateFormat dateFormatter = DateFormat('MMM dd, K:mm:ss a');
+    final DateFormat dateFormatter = DateFormat('MMM dd, ');
 
     await flutterLocalNotificationsPlugin.show(
       0,
