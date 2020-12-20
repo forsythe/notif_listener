@@ -175,7 +175,7 @@ class _MyAppState extends State<MyApp> {
         android: androidPlatformChannelSpecifics,
         iOS: IOSNotificationDetails(),
         macOS: MacOSNotificationDetails());
-    final DateFormat dateFormatter = DateFormat('MMM dd, ');
+    final DateFormat dateFormatter = DateFormat('MMM dd,');
 
     await flutterLocalNotificationsPlugin.show(
       0,
